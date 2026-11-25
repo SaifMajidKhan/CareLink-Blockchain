@@ -5,12 +5,12 @@ import { API_BASE_URL } from '../config/api.config';
 
 import {
   Medication,
-  MedicationWithAnchor
+  MedicationCreate,
+  MedicationCorrection,
+  MedicationAnchor,
+  MedicationWithAnchor,
+  MedicationIntegrity
 } from '../models/medication.models';
-
-import {
-  AnchorSummary
-} from '../models/dashboard.models';
 
 @Injectable({
   providedIn: 'root'
@@ -51,9 +51,30 @@ export class MedicationService {
 
   }
 
+  createMedication(payload: MedicationCreate) {
+
+    return this.http.post<MedicationWithAnchor>(
+      `${this.url}/`,
+      payload
+    );
+
+  }
+
+  correctMedication(
+    id: number,
+    payload: MedicationCorrection
+  ) {
+
+    return this.http.post<MedicationWithAnchor>(
+      `${this.url}/${id}/correct`,
+      payload
+    );
+
+  }
+
   verifyIntegrity(id: number) {
 
-    return this.http.get<Record<string, unknown>>(
+    return this.http.get<MedicationIntegrity>(
       `${this.url}/${id}/integrity`
     );
 
@@ -61,7 +82,7 @@ export class MedicationService {
 
   retryAnchor(id: number) {
 
-    return this.http.post<AnchorSummary>(
+    return this.http.post<MedicationAnchor>(
       `${this.url}/${id}/retry-anchor`,
       null
     );

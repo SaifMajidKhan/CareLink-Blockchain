@@ -8,12 +8,17 @@ import {
 
 import {
   DatePipe,
-  JsonPipe
 } from '@angular/common';
 
 import { ActivatedRoute } from '@angular/router';
 import { switchMap, of, catchError } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 
 import {
   LucideAngularModule,
@@ -25,7 +30,10 @@ import {
   ShieldCheck,
   History,
   X,
-  Copy
+  Copy,
+  Plus,
+  Pencil,
+  ShieldAlert
 } from 'lucide-angular';
 
 import {
@@ -38,7 +46,10 @@ import {
 
 import {
   Medication,
-  MedicationWithAnchor
+  MedicationWithAnchor,
+  MedicationStatus,
+  MedicationIntegrity,
+  MedicationCorrection
 } from '../../core/models/medication.models';
 
 import {
@@ -57,9 +68,9 @@ import {
   selector: 'app-medications',
   imports: [
     DatePipe,
-    JsonPipe,
     LucideAngularModule,
     StatCard,
+    ReactiveFormsModule,
     StatusBadge
   ],
   templateUrl: './medications.html',
@@ -73,7 +84,60 @@ export class Medications implements OnInit {
   private readonly patientService =
     inject(PatientService);
 
-  private readonly route = inject(ActivatedRoute);
+    private readonly route = inject(ActivatedRoute);
+
+    private readonly fb = inject(FormBuilder);
+
+ readonly Plus = Plus;
+ readonly Pencil = Pencil;
+ readonly ShieldAlert = ShieldAlert;
+
+ readonly formOpen = signal(false);
+ readonly saving = signal(false);
+ readonly formError = signal('');
+ readonly notice = signal('');
+
+ readonly correctionTarget =
+  signal<Medication | null>(null);
+
+ readonly medicationForm = this.fb.nonNullable.group({
+
+  patient_id: [
+    0,
+    [
+      Validators.required,
+      Validators.min(1)
+    ]
+  ],
+
+  medication_name: [
+    '',
+    [
+      Validators.required,
+      Validators.minLength(2),
+      Validators.maxLength(150)
+    ]
+  ],
+
+  dosage: [
+    '',
+    [
+      Validators.required,
+      Validators.maxLength(100)
+    ]
+  ],
+
+  status: [
+    'Pending' as MedicationStatus,
+    Validators.required
+  ],
+
+  scheduled_at: [
+    '',
+    Validators.required
+  ]
+
+ });
 
   readonly Pill = Pill;
   readonly CheckCircle = CheckCircle;
@@ -108,7 +172,7 @@ export class Medications implements OnInit {
     signal<MedicationWithAnchor[]>([]);
 
   readonly integrity =
-    signal<Record<string, unknown> | null>(null);
+    signal<MedicationIntegrity | null>(null);
 
   readonly page = signal(1);
   readonly pageSize = 8;
@@ -479,4 +543,226 @@ export class Medications implements OnInit {
 
   }
 
+  openCreateForm(): void {
+
+  if (this.busy() || this.saving()) return;
+
+  this.correctionTarget.set(null);
+  this.selected.set(null);
+  this.integrity.set(null);
+  this.history.set([]);
+  this.formError.set('');
+  this.notice.set('');
+
+  this.medicationForm.reset({
+
+    patient_id:
+      this.patientFilter() ??
+      this.patients()[0]?.id ??
+      0,
+
+    medication_name: '',
+    dosage: '',
+    status: 'Pending',
+
+    scheduled_at:
+      this.toLocalDateTime(new Date())
+
+  });
+
+  this.formOpen.set(true);
+
+}
+
+openCorrectionForm(): void {
+
+  const record = this.selected();
+
+  if (!record || this.busy() || this.saving()) {
+    return;
+  }
+
+  this.correctionTarget.set(record.medication);
+  this.formError.set('');
+  this.notice.set('');
+
+  this.medicationForm.reset({
+
+    patient_id: record.medication.patient_id,
+
+    medication_name:
+      record.medication.medication_name,
+
+    dosage: record.medication.dosage,
+
+    status: record.medication.status,
+
+    scheduled_at: this.toLocalDateTime(
+      new Date(record.medication.scheduled_at)
+    )
+
+  });
+
+  this.selected.set(null);
+  this.integrity.set(null);
+  this.history.set([]);
+  this.formOpen.set(true);
+
+}
+
+closeMedicationForm(): void {
+
+  if (this.saving()) return;
+
+  this.formOpen.set(false);
+  this.correctionTarget.set(null);
+  this.formError.set('');
+
+}
+
+saveMedication(): void {
+
+  if (this.saving()) return;
+
+  this.formError.set('');
+
+  if (this.medicationForm.invalid) {
+
+    this.medicationForm.markAllAsTouched();
+
+    this.formError.set(
+      'Please complete all required fields correctly.'
+    );
+
+    return;
+
+  }
+
+  const values = this.medicationForm.getRawValue();
+
+  const scheduledDate = new Date(
+    values.scheduled_at
+  );
+
+  if (Number.isNaN(scheduledDate.getTime())) {
+
+    this.formError.set(
+      'Please enter a valid scheduled date and time.'
+    );
+
+    return;
+
+  }
+
+  const target = this.correctionTarget();
+
+  const originalLocalTime = target
+    ? this.toLocalDateTime(
+        new Date(target.scheduled_at)
+      )
+    : null;
+
+  const payload: MedicationCorrection = {
+
+    medication_name:
+      values.medication_name.trim(),
+
+    dosage: values.dosage.trim(),
+
+    status: values.status,
+
+    scheduled_at:
+      target &&
+      values.scheduled_at === originalLocalTime
+        ? target.scheduled_at
+        : scheduledDate.toISOString()
+
+  };
+
+  if (
+    payload.medication_name.length < 2 ||
+    payload.dosage.length < 1
+  ) {
+
+    this.formError.set(
+      'Medication name and dosage cannot be empty.'
+    );
+
+    return;
+
+  }
+
+  this.saving.set(true);
+
+  const request = target
+
+    ? this.medicationService.correctMedication(
+        target.id,
+        payload
+      )
+
+    : this.medicationService.createMedication({
+        patient_id: values.patient_id,
+        ...payload
+      });
+
+  request.subscribe({
+
+    next: result => {
+
+      this.saving.set(false);
+      this.formOpen.set(false);
+      this.correctionTarget.set(null);
+
+      this.integrity.set(null);
+      this.history.set([]);
+      this.detailError.set('');
+      this.message.set('');
+
+      const action = target
+        ? 'Correction saved'
+        : 'Medication record created';
+
+      this.notice.set(
+        `${action}. Version ${result.medication.version}. ` +
+        `Blockchain registration: ${result.blockchain.status}.`
+      );
+
+      this.loadMedications();
+
+      this.selected.set(result);
+
+    },
+
+    error: response => {
+
+      this.saving.set(false);
+
+      this.formError.set(
+        this.errorText(
+          response,
+          'Unable to save medication record.'
+        )
+      );
+
+    }
+
+  });
+
+}
+
+private toLocalDateTime(date: Date): string {
+
+  const pad = (value: number) =>
+    String(value).padStart(2, '0');
+
+  return (
+    `${date.getFullYear()}-` +
+    `${pad(date.getMonth() + 1)}-` +
+    `${pad(date.getDate())}T` +
+    `${pad(date.getHours())}:` +
+    `${pad(date.getMinutes())}`
+  );
+
+}
 }

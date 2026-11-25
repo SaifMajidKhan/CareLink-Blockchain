@@ -1,6 +1,18 @@
 <section class="medications-page">
 
   <div class="page-heading">
+    @if (notice()) {
+
+  <div class="information" role="status">
+
+    <lucide-icon [img]="CheckCircle" [size]="20">
+    </lucide-icon>
+
+    {{ notice() }}
+
+  </div>
+
+}
 
     <div>
       <div class="eyebrow">MEDICATION MANAGEMENT</div>
@@ -10,17 +22,33 @@
       </p>
     </div>
 
-    <button
-      class="secondary-button"
-      [disabled]="loading() || busy()"
-      (click)="loadMedications()">
+    <div class="heading-actions">
 
-      <lucide-icon [img]="RefreshCw" [size]="17">
-      </lucide-icon>
+  <button
+    class="secondary-button"
+    [disabled]="loading() || busy() || saving()"
+    (click)="loadMedications()">
 
-      Refresh records
+    <lucide-icon [img]="RefreshCw" [size]="17">
+    </lucide-icon>
 
-    </button>
+    Refresh records
+
+  </button>
+
+  <button
+    class="primary-button"
+    [disabled]="busy() || saving() || patients().length === 0"
+    (click)="openCreateForm()">
+
+    <lucide-icon [img]="Plus" [size]="18">
+    </lucide-icon>
+
+    Add record
+
+  </button>
+
+</div>
 
   </div>
 
@@ -447,6 +475,18 @@
 
         </button>
 
+        <button
+  class="secondary-button"
+  [disabled]="busy() || saving()"
+  (click)="openCorrectionForm()">
+
+  <lucide-icon [img]="Pencil" [size]="17">
+  </lucide-icon>
+
+  Correct record
+
+</button>
+
         @if (
           record.blockchain.status === 'pending' ||
           record.blockchain.status === 'failed'
@@ -483,15 +523,70 @@
 
       @if (integrity(); as result) {
 
-        <div class="result-panel">
+  <div
+    class="verification-result"
+    [class.verified]="result.verified === true"
+    [class.mismatch]="result.verified === false"
+    [class.unavailable]="result.verified === null"
+    role="status">
 
-          <h3>Integrity verification response</h3>
+    <div class="verification-heading">
 
-          <pre>{{ result | json }}</pre>
+      <lucide-icon
+        [img]="result.verified === true
+          ? ShieldCheck
+          : ShieldAlert"
+        [size]="32">
+      </lucide-icon>
 
-        </div>
+      <div>
 
-      }
+        <h3>
+
+          @if (result.verified === true) {
+
+            Integrity verified
+
+          } @else if (result.verified === false) {
+
+            Integrity mismatch
+
+          } @else {
+
+            Integrity not confirmed
+
+          }
+
+        </h3>
+
+        <p>{{ result.message }}</p>
+
+      </div>
+
+    </div>
+
+    <div class="verification-meta">
+
+      <div>
+        <span>Record ID</span>
+        <strong>#{{ result.medication_id }}</strong>
+      </div>
+
+      <div>
+        <span>Version</span>
+        <strong>v{{ result.version }}</strong>
+      </div>
+
+      <div>
+        <span>Verification status</span>
+        <strong>{{ result.status }}</strong>
+      </div>
+
+    </div>
+
+  </div>
+
+}
 
       @if (history().length > 0) {
 
@@ -547,6 +642,243 @@
         </div>
 
       }
+
+    </section>
+
+  </div>
+
+}
+
+@if (formOpen()) {
+
+  <div class="modal-overlay">
+
+    <section
+      class="medication-form-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="medication-form-title">
+
+      <div class="modal-header">
+
+        <div>
+
+          <div class="eyebrow">
+            MEDICATION MANAGEMENT
+          </div>
+
+          <h2 id="medication-form-title">
+
+            {{ correctionTarget()
+              ? 'Correct medication record'
+              : 'Register medication record' }}
+
+          </h2>
+
+          <p>
+            Save medication data with blockchain evidence.
+          </p>
+
+        </div>
+
+        <button
+          class="icon-button"
+          aria-label="Close medication form"
+          [disabled]="saving()"
+          (click)="closeMedicationForm()">
+
+          <lucide-icon [img]="X" [size]="22">
+          </lucide-icon>
+
+        </button>
+
+      </div>
+
+      @if (correctionTarget(); as target) {
+
+        <div class="information correction-notice">
+
+          <lucide-icon [img]="History" [size]="22">
+          </lucide-icon>
+
+          <div>
+
+            <strong>
+              Correcting version {{ target.version }}
+            </strong>
+
+            <p>
+              A successful correction creates version
+              {{ target.version + 1 }}.
+              Previous versions remain preserved.
+            </p>
+
+          </div>
+
+        </div>
+
+      }
+
+      <form
+        [formGroup]="medicationForm"
+        (ngSubmit)="saveMedication()">
+
+        <div class="form-field">
+
+          <label for="medication-patient">Patient</label>
+
+          @if (correctionTarget(); as target) {
+
+            <div class="readonly-field">
+              {{ patientName(target.patient_id) }}
+            </div>
+
+          } @else {
+
+            <select
+              id="medication-patient"
+              formControlName="patient_id">
+
+              <option [ngValue]="0">
+                Select patient
+              </option>
+
+              @for (
+                patient of patients();
+                track patient.id
+              ) {
+
+                <option [ngValue]="patient.id">
+                  {{ patient.name }}
+                </option>
+
+              }
+
+            </select>
+
+          }
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="medication-name">
+            Medication name
+          </label>
+
+          <input
+            id="medication-name"
+            formControlName="medication_name"
+            placeholder="e.g. Metformin"
+            maxlength="150">
+
+        </div>
+
+        <div class="form-row">
+
+          <div class="form-field">
+
+            <label for="medication-dosage">Dosage</label>
+
+            <input
+              id="medication-dosage"
+              formControlName="dosage"
+              placeholder="e.g. 500 mg"
+              maxlength="100">
+
+          </div>
+
+          <div class="form-field">
+
+            <label for="medication-status">Status</label>
+
+            <select
+              id="medication-status"
+              formControlName="status">
+
+              <option value="Taken">Taken</option>
+              <option value="Missed">Missed</option>
+              <option value="Pending">Pending</option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="medication-time">
+            Scheduled date and time
+          </label>
+
+          <input
+            id="medication-time"
+            type="datetime-local"
+            formControlName="scheduled_at">
+
+          <small>
+            Enter the scheduled time in your local timezone.
+          </small>
+
+        </div>
+
+        <div class="information">
+
+          <lucide-icon [img]="ShieldCheck" [size]="22">
+          </lucide-icon>
+
+          <p>
+            Medical data remains off-chain. Its digital
+            fingerprint is submitted to the blockchain.
+          </p>
+
+        </div>
+
+        @if (formError()) {
+
+          <div class="error-message form-error" role="alert">
+            {{ formError() }}
+          </div>
+
+        }
+
+        <div class="form-footer">
+
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="saving()"
+            (click)="closeMedicationForm()">
+
+            Cancel
+
+          </button>
+
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="saving()">
+
+            @if (saving()) {
+
+              Saving record...
+
+            } @else if (correctionTarget()) {
+
+              Save correction
+
+            } @else {
+
+              Register record
+
+            }
+
+          </button>
+
+        </div>
+
+      </form>
 
     </section>
 

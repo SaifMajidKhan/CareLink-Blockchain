@@ -415,3 +415,168 @@ tbody tr:hover {
   }
 
 }
+
+.heading-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.medication-form-modal {
+  width: min(100%, 560px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 19px;
+}
+
+.form-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-field input,
+.form-field select,
+.readonly-field {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.form-field input.ng-invalid.ng-touched,
+.form-field select.ng-invalid.ng-touched {
+  border-color: #dc2626;
+}
+
+.form-field small {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.readonly-field {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 20px;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.correction-notice {
+  margin-bottom: 22px;
+}
+
+.form-error {
+  margin-top: 15px;
+}
+
+.verification-result {
+  padding: 22px;
+  border: 1px solid;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+
+.verification-result.verified {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.verification-result.mismatch {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.verification-result.unavailable {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.verification-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.verification-heading h3 {
+  font-size: 18px;
+  margin-bottom: 7px;
+}
+
+.verification-heading p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.verification-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 17px;
+  border-top: 1px solid currentColor;
+}
+
+.verification-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.verification-meta span {
+  font-size: 11px;
+}
+
+.verification-meta strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+
+  .form-row,
+  .verification-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .medication-form-modal {
+    padding: 20px;
+  }
+
+}

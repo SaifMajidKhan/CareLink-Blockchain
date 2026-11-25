@@ -1,0 +1,36 @@
+{
+    "model_version": "carelink-logreg-v1",
+    "algorithm": "Logistic Regression",
+    "dataset_type": "synthetic",
+    "dataset_sha256": "4e2a3ffad3d94ac3327aade6d9a5653e7d15dec1d3ade1bb6b6794ac24ec66da",
+    "sklearn_version": "1.9.1",
+    "total_records": 5000,
+    "training_records": 4000,
+    "testing_records": 1000,
+    "features": [
+        "age",
+        "daily_doses",
+        "missed_doses_7d",
+        "adherence_rate_30d",
+        "reminder_response_rate",
+        "medication_count",
+        "chronic_condition_count",
+        "previous_non_adherence"
+    ],
+    "accuracy": 0.687,
+    "precision": 0.721606648199446,
+    "recall": 0.8230647709320695,
+    "f1_score": 0.7690036900369004,
+    "roc_auc": 0.7420225473610806,
+    "confusion_matrix": [
+        [
+            166,
+            201
+        ],
+        [
+            112,
+            521
+        ]
+    ],
+    "model_sha256": "12d329db0b82b4bb05eafc14a459247e31f2c090bcd78d601699335e821947ae"
+}

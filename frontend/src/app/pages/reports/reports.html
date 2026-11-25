@@ -1,1 +1,742 @@
-<p>reports works!</p>
+<section class="reports-page">
+
+  <div class="page-heading">
+
+    <div>
+      <div class="eyebrow">
+        SECURE MEDICAL DOCUMENTATION
+      </div>
+
+      <h1>Medical reports</h1>
+
+      <p>
+        Generate, download and verify blockchain-protected
+        medical documents.
+      </p>
+    </div>
+
+    <button
+      class="secondary-button"
+      [disabled]="loading() || busy()"
+      (click)="loadData()">
+
+      <lucide-icon [img]="RefreshCw" [size]="17">
+      </lucide-icon>
+
+      Refresh reports
+
+    </button>
+
+  </div>
+
+  <div class="information">
+
+    <lucide-icon [img]="Info" [size]="21">
+    </lucide-icon>
+
+    <span>
+      Reports are stored off-chain. Only their salted digital
+      fingerprints and registration metadata are recorded
+      on the blockchain.
+    </span>
+
+  </div>
+
+  <div class="summary-grid">
+
+    <article class="summary-card">
+      <span>Total medical reports</span>
+      <strong>
+        {{ loading() || listError() ? '—' : reports().length }}
+      </strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Registered fingerprints</span>
+      <strong class="success">
+        {{ loading() || listError() ? '—' : registeredCount() }}
+      </strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Not registered</span>
+      <strong class="warning">
+        {{ loading() || listError() ? '—' : pendingCount() }}
+      </strong>
+    </article>
+
+  </div>
+
+  <div class="report-grid">
+
+    <article class="panel">
+
+      <div class="panel-heading">
+
+        <div class="panel-icon">
+          <lucide-icon [img]="FilePlus" [size]="24">
+          </lucide-icon>
+        </div>
+
+        <div>
+          <h2>Generate report</h2>
+          <p>Create a PDF from a saved AI assessment.</p>
+        </div>
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="report-patient">Patient</label>
+
+        <select
+          id="report-patient"
+          [disabled]="busy() || loading()"
+          [value]="patientId()"
+          (change)="changePatient($any($event.target).value)">
+
+          <option value="0">Select patient</option>
+
+          @for (patient of patients(); track patient.id) {
+
+            <option
+              [value]="patient.id"
+              [selected]="patient.id === patientId()">
+
+              {{ patient.name }}
+
+            </option>
+
+          }
+
+        </select>
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="report-prediction">
+          Saved AI assessment
+        </label>
+
+        <select
+          id="report-prediction"
+          [disabled]="busy() || loading()"
+          [value]="predictionId()"
+          (change)="changePrediction($any($event.target).value)">
+
+          <option value="0">Select assessment</option>
+
+          @for (
+            item of filteredPredictions();
+            track item.prediction.id
+          ) {
+
+            <option
+              [value]="item.prediction.id"
+              [selected]="item.prediction.id === predictionId()">
+
+              #{{ item.prediction.id }}
+              · {{ item.prediction.risk_score }}%
+              · {{ item.prediction.risk_level }} risk
+
+            </option>
+
+          }
+
+        </select>
+
+      </div>
+
+      @if (selectedPrediction(); as item) {
+
+        <div class="assessment-preview">
+
+          <div class="metadata-row">
+            <span>Predicted risk</span>
+            <strong>
+              {{ item.prediction.risk_score | number:'1.2-2' }}%
+            </strong>
+          </div>
+
+          <div class="metadata-row">
+            <span>Risk level</span>
+            <app-status-badge
+              [status]="item.prediction.risk_level">
+            </app-status-badge>
+          </div>
+
+          <div class="metadata-row">
+            <span>Model</span>
+            <strong>{{ item.prediction.model_version }}</strong>
+          </div>
+
+          <div class="metadata-row">
+            <span>Blockchain</span>
+            <app-status-badge
+              [status]="item.blockchain?.status ?? 'unavailable'">
+            </app-status-badge>
+          </div>
+
+        </div>
+
+      } @else {
+
+        <div class="empty-state">
+          No assessment selected.
+        </div>
+
+      }
+
+      @if (generationError()) {
+
+        <div class="error-message" role="alert">
+          {{ generationError() }}
+        </div>
+
+      }
+
+      @if (notice()) {
+
+        <div class="notice" role="status">
+          {{ notice() }}
+        </div>
+
+      }
+
+      <button
+        class="primary-button full-width"
+        [disabled]="busy() || loading() || !selectedPrediction()"
+        (click)="generate()">
+
+        <lucide-icon [img]="FilePlus" [size]="18">
+        </lucide-icon>
+
+        Generate PDF report
+
+      </button>
+
+    </article>
+
+    <article class="panel" id="verify-document">
+
+      <div class="panel-heading">
+
+        <div class="panel-icon">
+          <lucide-icon [img]="ShieldCheck" [size]="24">
+          </lucide-icon>
+        </div>
+
+        <div>
+          <h2>Verify document</h2>
+          <p>Compare a PDF with its registered fingerprint.</p>
+        </div>
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="verification-report">
+          Registered medical report
+        </label>
+
+        <select
+          id="verification-report"
+          [disabled]="busy() || loading()"
+          [value]="verificationReportId()"
+          (change)="changeVerificationReport($any($event.target).value)">
+
+          <option value="0">Select report</option>
+
+          @for (item of reports(); track item.report.id) {
+
+            <option
+              [value]="item.report.id"
+              [selected]="item.report.id === verificationReportId()">
+
+              Report #{{ item.report.id }}
+              · {{ patientName(item.report.patient_id) }}
+
+            </option>
+
+          }
+
+        </select>
+
+      </div>
+
+      <input
+        #pdfInput
+        type="file"
+        accept=".pdf,application/pdf"
+        hidden
+        [disabled]="busy()"
+        (change)="selectFile($event)">
+
+      <button
+        class="upload-area"
+        [disabled]="busy()"
+        (click)="pdfInput.click()">
+
+        <lucide-icon [img]="UploadCloud" [size]="34">
+        </lucide-icon>
+
+        @if (selectedFile(); as file) {
+
+          <strong>{{ file.name }}</strong>
+
+          <span>
+            {{ file.size / 1024 | number:'1.0-2' }} KB
+          </span>
+
+          <small>Click to choose another document</small>
+
+        } @else {
+
+          <strong>Choose PDF document</strong>
+
+          <span>Click to browse files</span>
+
+          <small>PDF only · Maximum 10 MB</small>
+
+        }
+
+      </button>
+
+      @if (verificationError()) {
+
+        <div class="error-message" role="alert">
+          {{ verificationError() }}
+        </div>
+
+      }
+
+      <button
+        class="primary-button full-width"
+        [disabled]="busy() || loading() ||
+          !selectedFile() || !verificationReportId()"
+        (click)="verify()">
+
+        <lucide-icon [img]="ShieldCheck" [size]="18">
+        </lucide-icon>
+
+        Verify document integrity
+
+      </button>
+
+      @if (integrity(); as result) {
+
+        <div
+          class="verification-result"
+          [class.verified]="result.verified === true"
+          [class.mismatch]="result.verified === false"
+          [class.unavailable]="result.verified === null"
+          role="status">
+
+          <lucide-icon
+            [img]="result.verified === true
+              ? ShieldCheck
+              : ShieldAlert"
+            [size]="32">
+          </lucide-icon>
+
+          <div>
+
+            @if (result.verified === true) {
+
+              <h3>Document integrity verified</h3>
+
+              <p>
+                The uploaded PDF matches the registered
+                blockchain fingerprint.
+              </p>
+
+            } @else if (result.verified === false) {
+
+              <h3>Document integrity mismatch</h3>
+
+              <p>
+                The uploaded PDF differs from the
+                originally registered document.
+              </p>
+
+            } @else {
+
+              <h3>Integrity not confirmed</h3>
+
+              <p>
+                Verification could not be completed.
+              </p>
+
+            }
+
+            <small>
+              Report #{{ result.report_id }}
+              · Version {{ result.version }}
+              · {{ result.status }}
+            </small>
+
+          </div>
+
+        </div>
+
+      }
+
+    </article>
+
+  </div>
+
+  @if (busy()) {
+
+    <div class="information" role="status">
+      Processing request. Please wait...
+    </div>
+
+  }
+
+  <article class="panel">
+
+    <div class="panel-heading">
+
+      <div>
+        <h2>Registered medical reports</h2>
+        <p>Download reports and inspect blockchain evidence.</p>
+      </div>
+
+    </div>
+
+    @if (listError()) {
+
+      <div class="error-message">
+        {{ listError() }}
+      </div>
+
+    }
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Document</th>
+            <th>Patient</th>
+            <th>Assessment</th>
+            <th>Created</th>
+            <th>Blockchain</th>
+            <th>Actions</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          @if (loading()) {
+
+            <tr>
+              <td colspan="6" class="empty-state">
+                Loading reports...
+              </td>
+            </tr>
+
+          } @else {
+
+            @for (item of reports(); track item.report.id) {
+
+              <tr>
+
+                <td>
+
+                  <div class="document-cell">
+
+                    <div class="document-icon">
+                      <lucide-icon [img]="FileText" [size]="20">
+                      </lucide-icon>
+                    </div>
+
+                    <div>
+                      <strong>
+                        Medical report #{{ item.report.id }}
+                      </strong>
+
+                      <small>PDF document</small>
+                    </div>
+
+                  </div>
+
+                </td>
+
+                <td>{{ patientName(item.report.patient_id) }}</td>
+
+                <td>#{{ item.report.prediction_id }}</td>
+
+                <td>
+                  {{ item.report.created_at | date:'dd MMM, HH:mm' }}
+                </td>
+
+                <td>
+                  <app-status-badge
+                    [status]="item.blockchain?.status ?? 'unavailable'">
+                  </app-status-badge>
+                </td>
+
+                <td>
+
+                  <div class="table-actions">
+
+                    <button
+                      class="icon-button"
+                      title="Download PDF"
+                      aria-label="Download PDF"
+                      [disabled]="busy()"
+                      (click)="download(item)">
+
+                      <lucide-icon [img]="Download" [size]="18">
+                      </lucide-icon>
+
+                    </button>
+
+                    <button
+                      class="icon-button"
+                      title="Verify document"
+                      aria-label="Verify document"
+                      [disabled]="busy()"
+                      (click)="prepareVerification(item)">
+
+                      <lucide-icon [img]="ShieldCheck" [size]="18">
+                      </lucide-icon>
+
+                    </button>
+
+                    <button
+                      class="icon-button"
+                      title="View blockchain evidence"
+                      aria-label="View blockchain evidence"
+                      [disabled]="busy()"
+                      (click)="showDetails(item)">
+
+                      <lucide-icon [img]="Eye" [size]="18">
+                      </lucide-icon>
+
+                    </button>
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            } @empty {
+
+              <tr>
+                <td colspan="6" class="empty-state">
+                  No medical reports available.
+                </td>
+              </tr>
+
+            }
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </article>
+
+</section>
+
+@if (selected(); as item) {
+
+  <div class="modal-overlay">
+
+    <section
+      class="evidence-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="report-evidence-title">
+
+      <div class="modal-header">
+
+        <div>
+
+          <div class="eyebrow">DOCUMENT BLOCKCHAIN EVIDENCE</div>
+
+          <h2 id="report-evidence-title">
+            Medical report #{{ item.report.id }}
+          </h2>
+
+          <p>{{ patientName(item.report.patient_id) }}</p>
+
+        </div>
+
+        <button
+          class="icon-button"
+          aria-label="Close evidence"
+          [disabled]="busy()"
+          (click)="closeDetails()">
+
+          <lucide-icon [img]="X" [size]="22">
+          </lucide-icon>
+
+        </button>
+
+      </div>
+
+      <div class="metadata-row">
+        <span>AI assessment</span>
+        <strong>#{{ item.report.prediction_id }}</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Document version</span>
+        <strong>v{{ item.report.version }}</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Created</span>
+        <strong>{{ item.report.created_at | date:'medium' }}</strong>
+      </div>
+
+      <div class="hash-field">
+        <label>Original file name</label>
+        <code>{{ item.report.file_name }}</code>
+      </div>
+
+      @if (item.blockchain; as anchor) {
+
+        <div class="metadata-row">
+          <span>Registration status</span>
+          <app-status-badge [status]="anchor.status">
+          </app-status-badge>
+        </div>
+
+        <div class="metadata-row">
+          <span>Chain ID</span>
+          <strong>{{ anchor.chain_id }}</strong>
+        </div>
+
+        <div class="metadata-row">
+          <span>Block number</span>
+          <strong>{{ anchor.block_number ?? '—' }}</strong>
+        </div>
+
+        <div class="metadata-row">
+          <span>Registration attempts</span>
+          <strong>{{ anchor.retry_count }}</strong>
+        </div>
+
+        <div class="hash-field">
+          <label>Record reference</label>
+          <code>{{ anchor.record_ref }}</code>
+        </div>
+
+        <div class="hash-field">
+          <label>PDF fingerprint</label>
+          <code>{{ anchor.fingerprint }}</code>
+        </div>
+
+        <div class="hash-field">
+          <label>Smart contract address</label>
+          <code>{{ anchor.contract_address }}</code>
+        </div>
+
+        <div class="hash-field">
+
+          <label>Transaction hash</label>
+
+          <code>
+            {{ anchor.transaction_hash ?? 'Not available' }}
+          </code>
+
+          @if (anchor.transaction_hash; as hash) {
+
+            <button
+              class="text-button"
+              (click)="copy(hash)">
+
+              <lucide-icon [img]="Copy" [size]="15">
+              </lucide-icon>
+
+              Copy transaction hash
+
+            </button>
+
+          }
+
+        </div>
+
+        @if (
+          anchor.status === 'pending' ||
+          anchor.status === 'failed'
+        ) {
+
+          <button
+            class="secondary-button"
+            [disabled]="busy()"
+            (click)="retry()">
+
+            Retry registration
+
+          </button>
+
+        }
+
+      } @else {
+
+        <div class="information">
+          Blockchain registration metadata unavailable.
+        </div>
+
+      }
+
+      @if (detailError()) {
+
+        <div class="error-message">
+          {{ detailError() }}
+        </div>
+
+      }
+
+      @if (copied()) {
+
+        <div class="notice">{{ copied() }}</div>
+
+      }
+
+      <div class="modal-actions">
+
+        <button
+          class="secondary-button"
+          [disabled]="busy()"
+          (click)="download(item)">
+
+          <lucide-icon [img]="Download" [size]="17">
+          </lucide-icon>
+
+          Download PDF
+
+        </button>
+
+        <button
+          class="primary-button"
+          [disabled]="busy()"
+          (click)="prepareVerification(item)">
+
+          <lucide-icon [img]="ShieldCheck" [size]="17">
+          </lucide-icon>
+
+          Verify document
+
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+}

@@ -1,1 +1,387 @@
-<p>patients works!</p>
+<section class="patients-page">
+
+  <div class="page-heading">
+
+    <div>
+      <div class="eyebrow">PATIENT MANAGEMENT</div>
+
+      <h1>Patients</h1>
+
+      <p>
+        Manage patient profiles and chronic conditions.
+      </p>
+    </div>
+
+    <button class="primary-button" (click)="openForm()">
+
+      <lucide-icon [img]="UserPlus" [size]="18">
+      </lucide-icon>
+
+      Add patient
+
+    </button>
+
+  </div>
+
+  @if (success()) {
+    <div class="success-message" role="status">
+      {{ success() }}
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-message" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="stats-grid">
+
+    <app-stat-card
+      label="Patients"
+      [value]="loading() || error() ? '—' : patients().length"
+      description="Retrieved patient profiles">
+
+      <lucide-icon [img]="Users" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="Diabetes"
+      [value]="loading() || error() ? '—' : diabetesCount()"
+      description="Patients with diabetes"
+      accent="#2563eb">
+
+      <lucide-icon [img]="Activity" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="Hypertension"
+      [value]="loading() || error() ? '—' : hypertensionCount()"
+      description="Patients with hypertension"
+      accent="#d97706">
+
+      <lucide-icon [img]="HeartPulse" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+  </div>
+
+  <article class="directory">
+
+    <div class="directory-header">
+
+      <div>
+        <h2>Patient directory</h2>
+
+        <p>Browse registered patient profiles.</p>
+      </div>
+
+      <div class="directory-actions">
+
+        <div class="search-box">
+
+          <lucide-icon [img]="Search" [size]="17">
+          </lucide-icon>
+
+          <input
+            type="search"
+            aria-label="Search patients"
+            placeholder="Search patients..."
+            [value]="search()"
+            (input)="updateSearch($any($event.target).value)">
+
+        </div>
+
+        <button
+          class="icon-button"
+          aria-label="Refresh patients"
+          [disabled]="loading()"
+          (click)="loadPatients()">
+
+          <lucide-icon [img]="RefreshCw" [size]="18">
+          </lucide-icon>
+
+        </button>
+
+      </div>
+
+    </div>
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Age</th>
+            <th>Condition</th>
+            <th>Registered</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @if (loading()) {
+
+            <tr>
+              <td colspan="5" class="empty-state">
+                Loading patient profiles...
+              </td>
+            </tr>
+
+          } @else if (error()) {
+
+            <tr>
+              <td colspan="5" class="empty-state">
+                Patient data unavailable.
+              </td>
+            </tr>
+
+          } @else {
+
+            @for (patient of visiblePatients(); track patient.id) {
+
+              <tr>
+
+                <td>
+
+                  <div class="patient-cell">
+
+                    <div class="avatar">
+                      {{ initials(patient.name) }}
+                    </div>
+
+                    <div>
+                      <strong>{{ patient.name }}</strong>
+                      <span>Patient #{{ patient.id }}</span>
+                    </div>
+
+                  </div>
+
+                </td>
+
+                <td>{{ patient.age }} years</td>
+
+                <td>
+                  <span class="condition">
+                    {{ patient.condition }}
+                  </span>
+                </td>
+
+                <td>
+                  {{ patient.created_at | date:'dd MMM yyyy' }}
+                </td>
+
+                <td>
+
+                  <a
+                    class="record-link"
+                    routerLink="/medications"
+                    [queryParams]="{ patient_id: patient.id }">
+
+                    View records
+
+                    <lucide-icon
+                      [img]="ArrowUpRight"
+                      [size]="15">
+                    </lucide-icon>
+
+                  </a>
+
+                </td>
+
+              </tr>
+
+            } @empty {
+
+              <tr>
+                <td colspan="5" class="empty-state">
+                  No matching patients found.
+                </td>
+              </tr>
+
+            }
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination">
+
+      <span>
+        {{ filteredPatients().length }} matching patients
+      </span>
+
+      <div class="page-controls">
+
+        <button
+          [disabled]="page() === 1"
+          (click)="changePage(page() - 1)">
+          Previous
+        </button>
+
+        <span>{{ page() }} / {{ totalPages() }}</span>
+
+        <button
+          [disabled]="page() >= totalPages()"
+          (click)="changePage(page() + 1)">
+          Next
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+  <p class="disclaimer">
+    Academic demonstration. Use synthetic patient information only.
+  </p>
+
+</section>
+
+@if (formOpen()) {
+
+  <div class="modal-overlay">
+
+    <section
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="patient-form-title">
+
+      <div class="modal-header">
+
+        <div>
+          <h2 id="patient-form-title">Register patient</h2>
+          <p>Create a new synthetic patient profile.</p>
+        </div>
+
+        <button
+          class="icon-button"
+          aria-label="Close form"
+          [disabled]="saving()"
+          (click)="closeForm()">
+
+          <lucide-icon [img]="X" [size]="21">
+          </lucide-icon>
+
+        </button>
+
+      </div>
+
+      <form
+        [formGroup]="patientForm"
+        (ngSubmit)="createPatient()">
+
+        <div class="form-field">
+
+          <label for="patient-name">Patient name</label>
+
+          <input
+            id="patient-name"
+            formControlName="name"
+            placeholder="e.g. Demo Patient 004">
+
+          @if (
+            patientForm.controls.name.touched &&
+            patientForm.controls.name.invalid
+          ) {
+            <small>Enter a valid patient name.</small>
+          }
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="patient-age">Age</label>
+
+          <input
+            id="patient-age"
+            type="number"
+            min="1"
+            max="120"
+            formControlName="age">
+
+          @if (
+            patientForm.controls.age.touched &&
+            patientForm.controls.age.invalid
+          ) {
+            <small>Age must be a whole number from 1 to 120.</small>
+          }
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="patient-condition">Chronic condition</label>
+
+          <select
+            id="patient-condition"
+            formControlName="condition">
+
+            <option value="">Select condition</option>
+            <option value="Type 2 Diabetes">Type 2 Diabetes</option>
+            <option value="Hypertension">Hypertension</option>
+            <option value="Diabetes and Hypertension">
+              Diabetes and Hypertension
+            </option>
+
+          </select>
+
+          @if (
+            patientForm.controls.condition.touched &&
+            patientForm.controls.condition.invalid
+          ) {
+            <small>Select a chronic condition.</small>
+          }
+
+        </div>
+
+        @if (formError()) {
+          <div class="error-message" role="alert">
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="saving()"
+            (click)="closeForm()">
+
+            Cancel
+
+          </button>
+
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="saving()">
+
+            {{ saving() ? 'Registering...' : 'Register patient' }}
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  </div>
+
+}

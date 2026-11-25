@@ -66,21 +66,19 @@ class BlockchainService:
             "BLOCKCHAIN_PRIVATE_KEY"
         )
 
-        artifact_path = (
+        abi_path = (
             BASE_DIR
-            / "artifacts"
-            / "contracts"
-            / "CareLinkIntegrity.sol"
+            / "abi"
             / "CareLinkIntegrity.json"
         )
 
         with open(
-            artifact_path,
+            abi_path,
             "r",
             encoding="utf-8"
         ) as file:
 
-            artifact = json.load(file)
+            abi = json.load(file)
 
         if not self.web3.eth.get_code(
             self.contract_address
@@ -91,8 +89,8 @@ class BlockchainService:
 
         self.contract = self.web3.eth.contract(
             address=self.contract_address,
-            abi=artifact["abi"]
-        )
+            abi=abi
+        ) 
 
         if self.private_key:
 

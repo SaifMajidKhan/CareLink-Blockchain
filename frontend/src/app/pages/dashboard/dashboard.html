@@ -1,1 +1,363 @@
-<p>dashboard works!</p>
+<section class="dashboard">
+
+  <div class="page-heading">
+
+    <div>
+      <div class="eyebrow">CARELINK WORKSPACE</div>
+
+      <h1>Clinical overview</h1>
+
+      <p>
+        Monitor medication adherence, AI assessments
+        and blockchain record integrity.
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      [disabled]="loading()"
+      (click)="refresh()">
+
+      <lucide-icon
+        [img]="RefreshCw"
+        [size]="17"
+        [class.spinning]="loading()">
+      </lucide-icon>
+
+      {{ loading() ? 'Loading...' : 'Refresh data' }}
+
+    </button>
+
+  </div>
+
+  @if (!loading() && dataUnavailable()) {
+
+    <div class="warning-banner">
+      Some backend data could not be retrieved.
+      Check the system health and API configuration.
+    </div>
+
+  }
+
+  <div class="stats-grid">
+
+    <app-stat-card
+      label="Patients"
+      [value]="count(patients())"
+      description="Retrieved patient profiles"
+      accent="#0f766e">
+
+      <lucide-icon [img]="Users" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="Medication records"
+      [value]="count(medications())"
+      description="Retrieved medication records"
+      accent="#2563eb">
+
+      <lucide-icon [img]="Pill" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="AI predictions"
+      [value]="count(predictions())"
+      description="Stored risk assessments"
+      accent="#d97706">
+
+      <lucide-icon [img]="BrainCircuit" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="Medical reports"
+      [value]="count(reports())"
+      description="Generated PDF reports"
+      accent="#7c3aed">
+
+      <lucide-icon [img]="FileText" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+  </div>
+
+  <div class="overview-grid">
+
+    <article class="panel prediction-panel">
+
+      <div class="panel-heading">
+
+        <div>
+          <h2>Latest AI assessment</h2>
+          <p>Medication non-adherence risk</p>
+        </div>
+
+        <lucide-icon
+          [img]="BrainCircuit"
+          [size]="23"
+          class="panel-icon">
+        </lucide-icon>
+
+      </div>
+
+      @if (latestPrediction(); as latest) {
+
+        <div class="patient-name">
+          {{ latestPatientName() }}
+        </div>
+
+        <div class="risk-row">
+
+          <div
+            class="risk-score"
+            [class.high]="latest.prediction.risk_level === 'High'"
+            [class.medium]="latest.prediction.risk_level === 'Medium'"
+            [class.low]="latest.prediction.risk_level === 'Low'">
+
+            {{ latest.prediction.risk_score | number:'1.2-2' }}%
+
+          </div>
+
+          <app-status-badge
+            [status]="latest.prediction.risk_level">
+          </app-status-badge>
+
+        </div>
+
+        <div class="risk-track">
+
+          <div
+            class="risk-fill"
+            [class.high]="latest.prediction.risk_level === 'High'"
+            [class.medium]="latest.prediction.risk_level === 'Medium'"
+            [class.low]="latest.prediction.risk_level === 'Low'"
+            [style.width.%]="latest.prediction.risk_score">
+          </div>
+
+        </div>
+
+        <div class="model-details">
+
+          <span>{{ latest.prediction.algorithm }}</span>
+
+          <span>{{ latest.prediction.model_version }}</span>
+
+        </div>
+
+        <div class="prediction-footer">
+
+          <app-status-badge
+            [status]="latest.blockchain?.status ?? 'not_registered'">
+          </app-status-badge>
+
+          <a routerLink="/predictions">
+            View assessments
+            <lucide-icon [img]="ArrowUpRight" [size]="15">
+            </lucide-icon>
+          </a>
+
+        </div>
+
+      } @else {
+
+        <div class="empty-state">
+          {{ loading()
+            ? 'Loading assessment...'
+            : predictions() === null
+              ? 'Prediction data unavailable.'
+              : 'No AI predictions available yet.' }}
+        </div>
+
+      }
+
+    </article>
+
+    <article class="panel health-panel">
+
+      <div class="panel-heading">
+
+        <div>
+          <h2>System health</h2>
+          <p>Infrastructure availability</p>
+        </div>
+
+        <lucide-icon
+          [img]="Activity"
+          [size]="23"
+          class="panel-icon">
+        </lucide-icon>
+
+      </div>
+
+      <div class="health-row">
+
+        <div>
+          <strong>FastAPI</strong>
+          <span>Backend application</span>
+        </div>
+
+        <app-status-badge
+          [status]="health()?.backend?.status ?? 'loading'">
+        </app-status-badge>
+
+      </div>
+
+      <div class="health-row">
+
+        <div>
+          <strong>PostgreSQL</strong>
+          <span>Patient data storage</span>
+        </div>
+
+        <app-status-badge
+          [status]="health()?.database?.status ?? 'loading'">
+        </app-status-badge>
+
+      </div>
+
+      <div class="health-row">
+
+        <div>
+          <strong>Ethereum</strong>
+          <span>Blockchain integrity network</span>
+        </div>
+
+        <app-status-badge
+          [status]="health()?.blockchain?.status ?? 'loading'">
+        </app-status-badge>
+
+      </div>
+
+      <div class="network-details">
+
+        <span>Network chain ID</span>
+
+        <strong>
+          {{ health()?.blockchain?.chain_id ?? '—' }}
+        </strong>
+
+      </div>
+
+    </article>
+
+  </div>
+
+  <article class="panel transactions-panel">
+
+    <div class="panel-heading">
+
+      <div>
+        <h2>Recent blockchain registrations</h2>
+        <p>AI prediction and medical report evidence</p>
+      </div>
+
+      <a class="text-link" routerLink="/blockchain">
+
+        View explorer
+
+        <lucide-icon [img]="ArrowUpRight" [size]="16">
+        </lucide-icon>
+
+      </a>
+
+    </div>
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Record type</th>
+            <th>Transaction hash</th>
+            <th>Block</th>
+            <th>Registration status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @for (
+            item of recentAnchors();
+            track item.type + item.id
+          ) {
+
+            <tr>
+
+              <td>
+                <strong>{{ item.type }}</strong>
+                <span class="record-id">#{{ item.id }}</span>
+              </td>
+
+              <td
+                class="hash"
+                [title]="item.anchor?.transaction_hash ?? ''">
+
+                {{ shortenHash(item.anchor?.transaction_hash) }}
+
+              </td>
+
+              <td>
+                {{ item.anchor?.block_number ?? '—' }}
+              </td>
+
+              <td>
+                <app-status-badge
+                  [status]="item.anchor?.status ?? 'not_registered'">
+                </app-status-badge>
+              </td>
+
+            </tr>
+
+          } @empty {
+
+            <tr>
+              <td colspan="4" class="empty-state">
+                No registration evidence available.
+              </td>
+            </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </article>
+
+  <div class="integrity-banner">
+
+    <div class="integrity-icon">
+      <lucide-icon [img]="ShieldCheck" [size]="27">
+      </lucide-icon>
+    </div>
+
+    <div>
+      <h3>Blockchain-powered record integrity</h3>
+
+      <p>
+        Verify medical records against registered
+        cryptographic fingerprints.
+        Synthetic-data academic demonstration only.
+      </p>
+    </div>
+
+  </div>
+
+  @if (lastUpdated(); as updated) {
+
+    <div class="last-updated">
+      Last refreshed: {{ updated | date:'mediumTime' }}
+    </div>
+
+  }
+
+</section>

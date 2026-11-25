@@ -8,6 +8,8 @@ from fastapi import (
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from backend.app.schemas.medication import MedicationCorrection
+from backend.app.services.medication_service import correct_medication
 
 from backend.app.core.database import get_db
 
@@ -208,3 +210,94 @@ def retry_medication_anchor(
         db,
         anchor.id
     )
+@router.post(
+    "/{medication_id}/correct",
+    response_model=MedicationWithAnchor,
+    status_code=status.HTTP_201_CREATED
+)
+def correct_medication_record(
+    medication_id: int,
+    payload: MedicationCorrection,
+    db: Session = Depends(get_db)
+):
+
+    try:
+
+        medication, anchor = correct_medication(
+            db,
+            medication_id,
+            payload
+        )
+
+    except LookupError as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc)
+        )
+
+    except ValueError as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc)
+        )
+
+    return {
+        "medication": medication,
+        "blockchain": anchor
+    }
+
+
+@router.get(
+    "/{medication_id}/history",
+    response_model=list[MedicationWithAnchor]
+)
+def get_medication_history(
+    medication_id: int,
+    db: Session = Depends(get_db)
+):
+
+    medication = get_medication_or_404(
+        medication_id,
+        db
+    )
+
+    statement = (
+        select(MedicationEvent)
+        .where(
+            MedicationEvent.record_ref == medication.record_ref
+        )
+        .order_by(MedicationEvent.version)
+    )
+
+    versions = db.scalars(statement).all()
+
+    history = []
+
+    for version in versions:
+
+        anchor = find_anchor(
+            db,
+            "medication_event",
+            version.id,
+            version.version
+        )
+
+        if anchor is None:
+
+            raise HTTPException(
+                status_code=409,
+                detail="Version has a missing blockchain anchor"
+            )
+
+        history.append({
+            "medication": version,
+            "blockchain": anchor
+        })
+
+    return history

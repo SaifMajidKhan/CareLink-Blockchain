@@ -85,3 +85,27 @@ class IntegrityResponse(BaseModel):
     status: str
     verified: bool | None
     message: str
+
+class MedicationCorrection(BaseModel):
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True
+    )
+
+    medication_name: str = Field(
+        min_length=2,
+        max_length=150
+    )
+
+    dosage: str = Field(
+        min_length=1,
+        max_length=100
+    )
+
+    status: Literal[
+        "Taken",
+        "Missed",
+        "Pending"
+    ]
+
+    scheduled_at: AwareDatetime

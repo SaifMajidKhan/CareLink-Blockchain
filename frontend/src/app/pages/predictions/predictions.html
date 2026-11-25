@@ -1,1 +1,801 @@
-<p>predictions works!</p>
+<section class="predictions-page">
+
+  <div class="page-heading">
+
+    <div>
+      <div class="eyebrow">INTELLIGENT CARE ANALYTICS</div>
+      <h1>AI risk assessment</h1>
+      <p>
+        Predict medication non-adherence and preserve prediction integrity.
+      </p>
+    </div>
+
+    <div class="model-label">
+      <lucide-icon [img]="Brain" [size]="20"></lucide-icon>
+      Logistic Regression
+    </div>
+
+  </div>
+
+  <div class="disclaimer">
+    <lucide-icon [img]="Info" [size]="21"></lucide-icon>
+    <span>
+      Academic demonstration using synthetic training data.
+      Predictions are not clinically validated.
+    </span>
+  </div>
+
+  <div class="assessment-grid">
+
+    <article class="panel">
+
+      <div class="panel-heading">
+        <h2>Assessment parameters</h2>
+        <p>Enter patient and medication adherence features.</p>
+      </div>
+
+      <div class="demo-actions">
+
+        <button
+          class="secondary-button"
+          [disabled]="busy()"
+          (click)="loadDemo('low')">
+          Load low-risk example
+        </button>
+
+        <button
+          class="secondary-button"
+          [disabled]="busy()"
+          (click)="loadDemo('high')">
+          Load high-risk example
+        </button>
+
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="register()">
+
+        <fieldset [disabled]="busy()">
+
+          <div class="form-field">
+
+            <label for="patient">Patient</label>
+
+            <select
+              id="patient"
+              formControlName="patient_id"
+              (change)="onPatientChange()">
+
+              <option [ngValue]="0">Select patient</option>
+
+              @for (patient of patients(); track patient.id) {
+
+                <option [ngValue]="patient.id">
+                  {{ patient.name }}
+                </option>
+
+              }
+
+            </select>
+
+          </div>
+
+          <div class="form-grid">
+
+            <div class="form-field">
+              <label for="age">Age</label>
+              <input
+                id="age"
+                type="number"
+                min="18"
+                max="85"
+                formControlName="age">
+              <small>18–85 years</small>
+            </div>
+
+            <div class="form-field">
+              <label for="doses">Daily doses</label>
+              <input
+                id="doses"
+                type="number"
+                min="1"
+                max="4"
+                formControlName="daily_doses">
+              <small>1–4 doses per day</small>
+            </div>
+
+            <div class="form-field">
+              <label for="missed">Missed doses (7 days)</label>
+              <input
+                id="missed"
+                type="number"
+                min="0"
+                [max]="form.controls.daily_doses.value * 7"
+                formControlName="missed_doses_7d">
+              <small>
+                Maximum {{ form.controls.daily_doses.value * 7 }}
+              </small>
+            </div>
+
+            <div class="form-field">
+              <label for="medications">Medication count</label>
+              <input
+                id="medications"
+                type="number"
+                min="1"
+                max="6"
+                formControlName="medication_count">
+              <small>1–6 medications</small>
+            </div>
+
+          </div>
+
+          <div class="form-field">
+
+            <label for="adherence">
+              30-day adherence rate
+              <strong>
+                {{ form.controls.adherence_percent.value }}%
+              </strong>
+            </label>
+
+            <input
+              id="adherence"
+              type="range"
+              min="0"
+              max="100"
+              formControlName="adherence_percent">
+
+            <div class="range-labels">
+              <span>0%</span>
+              <span>100%</span>
+            </div>
+
+          </div>
+
+          <div class="form-field">
+
+            <label for="reminders">
+              Reminder response rate
+              <strong>
+                {{ form.controls.reminder_percent.value }}%
+              </strong>
+            </label>
+
+            <input
+              id="reminders"
+              type="range"
+              min="0"
+              max="100"
+              formControlName="reminder_percent">
+
+            <div class="range-labels">
+              <span>0%</span>
+              <span>100%</span>
+            </div>
+
+          </div>
+
+          <div class="form-grid">
+
+            <div class="form-field">
+
+              <label for="conditions">
+                Chronic conditions
+              </label>
+
+              <input
+                id="conditions"
+                type="number"
+                min="1"
+                max="3"
+                formControlName="chronic_condition_count">
+
+            </div>
+
+            <div class="form-field">
+
+              <label for="previous">
+                Previous non-adherence
+              </label>
+
+              <select
+                id="previous"
+                formControlName="previous_non_adherence">
+
+                <option [ngValue]="0">No</option>
+                <option [ngValue]="1">Yes</option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+        </fieldset>
+
+        @if (error()) {
+          <div class="error-message" role="alert">
+            {{ error() }}
+          </div>
+        }
+
+        <div class="form-actions">
+
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="busy()"
+            (click)="preview()">
+
+            <lucide-icon [img]="Activity" [size]="17">
+            </lucide-icon>
+
+            Preview assessment
+
+          </button>
+
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="busy() || patients().length === 0">
+
+            <lucide-icon [img]="Save" [size]="17">
+            </lucide-icon>
+
+            {{ busy() ? 'Processing...' : 'Register assessment' }}
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </article>
+
+    <article class="panel result-card">
+
+      <div class="panel-heading">
+        <h2>Prediction result</h2>
+        <p>Live output from the trained AI model.</p>
+      </div>
+
+      @if (result(); as assessment) {
+
+        <div class="risk-visual">
+
+          <svg viewBox="0 0 220 135" class="risk-gauge">
+
+            <path
+              d="M 25 110 A 85 85 0 0 1 195 110"
+              fill="none"
+              stroke="#e2e8f0"
+              stroke-width="15"
+              stroke-linecap="round">
+            </path>
+
+            <path
+              d="M 25 110 A 85 85 0 0 1 195 110"
+              fill="none"
+              [attr.stroke]="riskColor()"
+              stroke-width="15"
+              stroke-linecap="round"
+              pathLength="100"
+              [attr.stroke-dasharray]="assessment.risk_score + ' 100'">
+            </path>
+
+            <text
+              x="110"
+              y="87"
+              text-anchor="middle"
+              font-size="32"
+              font-weight="700"
+              [attr.fill]="riskColor()">
+
+              {{ assessment.risk_score | number:'1.2-2' }}%
+
+            </text>
+
+            <text
+              x="110"
+              y="108"
+              text-anchor="middle"
+              font-size="12"
+              fill="#64748b">
+              Predicted risk
+            </text>
+
+          </svg>
+
+          <div
+            class="risk-level"
+            [style.color]="riskColor()">
+
+            {{ assessment.risk_level }} risk
+
+          </div>
+
+          <p>
+            {{ resultMode() === 'preview'
+              ? 'Unsaved assessment preview'
+              : 'Saved assessment' }}
+          </p>
+
+        </div>
+
+        <div class="model-information">
+
+          <h3>Model information</h3>
+
+          <div class="metadata-row">
+            <span>Algorithm</span>
+            <strong>{{ assessment.algorithm }}</strong>
+          </div>
+
+          <div class="metadata-row">
+            <span>Model version</span>
+            <strong>{{ assessment.model_version }}</strong>
+          </div>
+
+          <div class="metadata-row">
+            <span>Training dataset</span>
+            <strong>{{ assessment.dataset_type }}</strong>
+          </div>
+
+          <div class="hash-field">
+            <label>Model SHA-256 fingerprint</label>
+            <code>{{ assessment.model_sha256 }}</code>
+          </div>
+
+        </div>
+
+        @if (notice()) {
+
+          <div class="notice">
+            {{ notice() }}
+          </div>
+
+        }
+
+        <div class="disclaimer">
+          {{ assessment.disclaimer }}
+        </div>
+
+      } @else {
+
+        <div class="empty-result">
+
+          <div class="brain-icon">
+            <lucide-icon [img]="Brain" [size]="42">
+            </lucide-icon>
+          </div>
+
+          <h3>{{ busy() ? 'Generating prediction...' : 'Ready for assessment' }}</h3>
+
+          <p>
+            Complete the assessment parameters and generate
+            a prediction using the trained model.
+          </p>
+
+        </div>
+
+      }
+
+    </article>
+
+  </div>
+
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <span>Saved assessments</span>
+      <strong>{{ loading() || historyError() ? '—' : predictions().length }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>High-risk assessments</span>
+      <strong class="danger">
+        {{ loading() || historyError() ? '—' : highRiskCount() }}
+      </strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Registered fingerprints</span>
+      <strong class="success">
+        {{ loading() || historyError() ? '—' : registeredCount() }}
+      </strong>
+    </div>
+
+  </div>
+
+  <article class="panel history-card">
+
+    <div class="history-header">
+
+      <div class="panel-heading">
+        <h2>Assessment history</h2>
+        <p>Review saved predictions and blockchain evidence.</p>
+      </div>
+
+      <div class="history-controls">
+
+        <select
+          aria-label="Filter assessment history"
+          [disabled]="loading() || busy()"
+          (change)="changeFilter($any($event.target).value)">
+
+          <option value="">All patients</option>
+
+          @for (patient of patients(); track patient.id) {
+
+            <option [value]="patient.id">
+              {{ patient.name }}
+            </option>
+
+          }
+
+        </select>
+
+        <button
+          class="secondary-button"
+          [disabled]="loading() || busy()"
+          (click)="loadHistory()">
+
+          <lucide-icon [img]="RefreshCw" [size]="16">
+          </lucide-icon>
+
+          Refresh
+
+        </button>
+
+      </div>
+
+    </div>
+
+    @if (historyError()) {
+      <div class="error-message">{{ historyError() }}</div>
+    }
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Risk score</th>
+            <th>Risk level</th>
+            <th>Created</th>
+            <th>Blockchain</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @if (loading()) {
+
+            <tr>
+              <td colspan="6" class="empty-state">
+                Loading assessments...
+              </td>
+            </tr>
+
+          } @else {
+
+            @for (item of predictions(); track item.prediction.id) {
+
+              <tr>
+
+                <td>
+                  <strong>
+                    {{ patientName(item.prediction.patient_id) }}
+                  </strong>
+                  <small>#{{ item.prediction.id }}</small>
+                </td>
+
+                <td>
+                  {{ item.prediction.risk_score | number:'1.2-2' }}%
+                </td>
+
+                <td>
+                  <app-status-badge
+                    [status]="item.prediction.risk_level">
+                  </app-status-badge>
+                </td>
+
+                <td>
+                  {{ item.prediction.created_at | date:'dd MMM, HH:mm' }}
+                </td>
+
+                <td>
+                  <app-status-badge
+                    [status]="item.blockchain?.status ?? 'unavailable'">
+                  </app-status-badge>
+                </td>
+
+                <td>
+
+                  <button
+                    class="text-button"
+                    [disabled]="busy()"
+                    (click)="showDetails(item)">
+
+                    <lucide-icon [img]="Eye" [size]="16">
+                    </lucide-icon>
+
+                    View evidence
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+            } @empty {
+
+              <tr>
+                <td colspan="6" class="empty-state">
+                  No assessments available.
+                </td>
+              </tr>
+
+            }
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </article>
+
+</section>
+
+@if (selected(); as record) {
+
+  <div class="modal-overlay">
+
+    <section
+      class="evidence-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="prediction-evidence-title">
+
+      <div class="modal-header">
+
+        <div>
+
+          <div class="eyebrow">AI BLOCKCHAIN EVIDENCE</div>
+
+          <h2 id="prediction-evidence-title">
+            Assessment #{{ record.prediction.id }}
+          </h2>
+
+          <p>{{ patientName(record.prediction.patient_id) }}</p>
+
+        </div>
+
+        <button
+          class="secondary-button"
+          aria-label="Close evidence"
+          [disabled]="busy()"
+          (click)="closeDetails()">
+
+          <lucide-icon [img]="X" [size]="20"></lucide-icon>
+
+        </button>
+
+      </div>
+
+      <div class="metadata-row">
+        <span>Predicted risk</span>
+        <strong>{{ record.prediction.risk_score }}%</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Risk level</span>
+        <app-status-badge [status]="record.prediction.risk_level">
+        </app-status-badge>
+      </div>
+
+      <div class="metadata-row">
+        <span>Model version</span>
+        <strong>{{ record.prediction.model_version }}</strong>
+      </div>
+
+      <h3 class="section-title">Original model inputs</h3>
+
+      <div class="input-summary">
+
+        <div>
+          <span>Age</span>
+          <strong>{{ record.prediction.input_features.age }}</strong>
+        </div>
+
+        <div>
+          <span>Daily doses</span>
+          <strong>{{ record.prediction.input_features.daily_doses }}</strong>
+        </div>
+
+        <div>
+          <span>Missed doses</span>
+          <strong>{{ record.prediction.input_features.missed_doses_7d }}</strong>
+        </div>
+
+        <div>
+          <span>Adherence</span>
+          <strong>
+            {{ record.prediction.input_features.adherence_rate_30d * 100 | number:'1.0-2' }}%
+          </strong>
+        </div>
+
+        <div>
+          <span>Reminder response</span>
+          <strong>
+            {{ record.prediction.input_features.reminder_response_rate * 100 | number:'1.0-2' }}%
+          </strong>
+        </div>
+
+        <div>
+          <span>Medication count</span>
+          <strong>{{ record.prediction.input_features.medication_count }}</strong>
+        </div>
+
+        <div>
+          <span>Chronic conditions</span>
+          <strong>{{ record.prediction.input_features.chronic_condition_count }}</strong>
+        </div>
+
+        <div>
+          <span>Previous non-adherence</span>
+          <strong>
+            {{ record.prediction.input_features.previous_non_adherence ? 'Yes' : 'No' }}
+          </strong>
+        </div>
+
+      </div>
+
+      <h3 class="section-title">Blockchain registration</h3>
+
+      @if (record.blockchain; as anchor) {
+
+        <div class="metadata-row">
+          <span>Registration status</span>
+          <app-status-badge [status]="anchor.status"></app-status-badge>
+        </div>
+
+        <div class="metadata-row">
+          <span>Chain ID</span>
+          <strong>{{ anchor.chain_id }}</strong>
+        </div>
+
+        <div class="metadata-row">
+          <span>Block number</span>
+          <strong>{{ anchor.block_number ?? '—' }}</strong>
+        </div>
+
+        <div class="hash-field">
+          <label>Record reference</label>
+          <code>{{ anchor.record_ref }}</code>
+        </div>
+
+        <div class="hash-field">
+          <label>Prediction fingerprint</label>
+          <code>{{ anchor.fingerprint }}</code>
+        </div>
+
+        <div class="hash-field">
+          <label>Smart contract address</label>
+          <code>{{ anchor.contract_address }}</code>
+        </div>
+
+        <div class="hash-field">
+
+          <label>Transaction hash</label>
+
+          <code>{{ anchor.transaction_hash ?? 'Not available' }}</code>
+
+          @if (anchor.transaction_hash; as hash) {
+
+            <button class="text-button" (click)="copy(hash)">
+              <lucide-icon [img]="Copy" [size]="15"></lucide-icon>
+              Copy transaction hash
+            </button>
+
+          }
+
+        </div>
+
+        <div class="form-actions">
+
+          <button
+            class="primary-button"
+            [disabled]="busy()"
+            (click)="verify()">
+
+            <lucide-icon [img]="ShieldCheck" [size]="18">
+            </lucide-icon>
+
+            Verify integrity
+
+          </button>
+
+          @if (anchor.status === 'pending' || anchor.status === 'failed') {
+
+            <button
+              class="secondary-button"
+              [disabled]="busy()"
+              (click)="retry()">
+              Retry registration
+            </button>
+
+          }
+
+        </div>
+
+      } @else {
+
+        <div class="disclaimer">
+          No blockchain registration metadata available.
+        </div>
+
+      }
+
+      @if (busy()) {
+        <p>Processing blockchain request...</p>
+      }
+
+      @if (copied()) {
+        <div class="notice">{{ copied() }}</div>
+      }
+
+      @if (detailError()) {
+        <div class="error-message">{{ detailError() }}</div>
+      }
+
+      @if (integrity(); as check) {
+
+        <div
+          class="verification-result"
+          [class.verified]="check.verified === true"
+          [class.mismatch]="check.verified === false"
+          [class.unavailable]="check.verified === null">
+
+          <lucide-icon
+            [img]="check.verified === true ? ShieldCheck : ShieldAlert"
+            [size]="30">
+          </lucide-icon>
+
+          <div>
+
+            <h3>
+
+              @if (check.verified === true) {
+                Integrity verified
+              } @else if (check.verified === false) {
+                Integrity mismatch
+              } @else {
+                Integrity not confirmed
+              }
+
+            </h3>
+
+            <p>
+              Assessment #{{ check.prediction_id }}
+              · Version {{ check.version }}
+              · {{ check.status }}
+            </p>
+
+          </div>
+
+        </div>
+
+      }
+
+    </section>
+
+  </div>
+
+}

@@ -218,3 +218,33 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Backend generated files
+/backend/uploads/
+/backend/generated_reports/
+/backend/ml/artifacts/
+
+# Frontend generated files
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.angular/
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

@@ -1,1 +1,35 @@
-<router-outlet></router-outlet>
+<div class="app-shell">
+
+  @if (mobileMenuOpen()) {
+
+    <button
+      class="mobile-overlay"
+      aria-label="Close navigation"
+      (click)="closeMenu()">
+    </button>
+
+  }
+
+  <div
+    class="sidebar-container"
+    [class.mobile-open]="mobileMenuOpen()">
+
+    <app-sidebar
+      (navigate)="closeMenu()">
+    </app-sidebar>
+
+  </div>
+
+  <div class="main-container">
+
+    <app-header
+      (menuToggle)="toggleMenu()">
+    </app-header>
+
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div>
+
+</div>

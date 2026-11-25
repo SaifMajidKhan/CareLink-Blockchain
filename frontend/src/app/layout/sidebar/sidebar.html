@@ -1,1 +1,60 @@
-<p>sidebar works!</p>
+<aside class="sidebar">
+
+  <div class="brand">
+    <div class="brand-icon">
+      <lucide-icon [img]="Activity" [size]="26">
+      </lucide-icon>
+    </div>
+
+    <div>
+      <h2>CareLink<span>.</span></h2>
+      <p>AI + BLOCKCHAIN</p>
+    </div>
+  </div>
+
+  <div class="navigation-label">WORKSPACE</div>
+
+  <nav class="navigation">
+
+    @for (item of navigation; track item.route) {
+
+      <a
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        (click)="navigate.emit()"
+        class="nav-link">
+
+        <lucide-icon
+          [img]="item.icon"
+          [size]="19">
+        </lucide-icon>
+
+        <span>{{ item.label }}</span>
+
+      </a>
+
+    }
+
+  </nav>
+
+  <div class="sidebar-footer">
+
+    <div class="workspace-card">
+
+      <div class="workspace-title">
+        <lucide-icon [img]="ShieldCheck" [size]="18">
+        </lucide-icon>
+
+        <span>Academic Workspace</span>
+      </div>
+
+      <p>Local Ethereum network</p>
+      <p>Synthetic patient data</p>
+
+      <div class="version">CareLink v1.0</div>
+
+    </div>
+
+  </div>
+
+</aside>

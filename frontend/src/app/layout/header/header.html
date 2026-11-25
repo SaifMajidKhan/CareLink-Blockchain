@@ -1,1 +1,53 @@
-<p>header works!</p>
+<header class="header">
+
+  <div class="header-left">
+
+    <button
+      class="menu-button"
+      aria-label="Toggle navigation"
+      (click)="menuToggle.emit()">
+
+      <lucide-icon [img]="Menu" [size]="23">
+      </lucide-icon>
+
+    </button>
+
+    <div class="breadcrumb">
+
+      <span>Workspace</span>
+
+      <lucide-icon
+        [img]="ChevronRight"
+        [size]="15">
+      </lucide-icon>
+
+      <strong>{{ currentPage() }}</strong>
+
+    </div>
+
+  </div>
+
+  <div class="header-right">
+
+    <div class="date">
+      <lucide-icon [img]="CalendarDays" [size]="17">
+      </lucide-icon>
+      {{ today }}
+    </div>
+
+    <div class="header-divider"></div>
+
+    <div class="profile">
+
+      <div class="avatar">CL</div>
+
+      <div class="profile-info">
+        <strong>Demo Workspace</strong>
+        <span>Academic project</span>
+      </div>
+
+    </div>
+
+  </div>
+
+</header>

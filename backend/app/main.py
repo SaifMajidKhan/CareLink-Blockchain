@@ -5,6 +5,7 @@ from backend.app.routers.patients import router as patients_router
 from backend.app.routers.medications import router as medications_router
 from backend.app.routers import predictions
 from backend.app.routers import reports
+from backend.app.routers import blockchain
 
 from backend.app.core.database import (
     check_database_connection
@@ -117,3 +118,4 @@ app.include_router(patients_router)
 app.include_router(medications_router)
 app.include_router(predictions.router)
 app.include_router(reports.router)
+app.include_router(blockchain.router)

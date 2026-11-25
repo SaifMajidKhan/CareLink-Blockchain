@@ -1,1 +1,23 @@
-<p>stat-card works!</p>
+<div class="stat-card">
+
+  <div class="stat-top">
+
+    <span>{{ label() }}</span>
+
+    <div
+      class="stat-icon"
+      [style.color]="accent()">
+
+      <ng-content></ng-content>
+
+    </div>
+
+  </div>
+
+  <div class="stat-value">
+    {{ value() }}
+  </div>
+
+  <p>{{ description() }}</p>
+
+</div>

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from backend.app.routers.patients import router as patients_router
 from backend.app.routers.medications import router as medications_router
+from backend.app.routers import predictions
 
 from backend.app.core.database import (
     check_database_connection
@@ -113,3 +114,4 @@ def blockchain_health():
     
 app.include_router(patients_router)
 app.include_router(medications_router)
+app.include_router(predictions.router)

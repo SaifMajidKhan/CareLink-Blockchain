@@ -277,3 +277,38 @@ class BlockchainService:
         return self.contract.functions.getLatestVersion(
             self._bytes32(record_ref)
         ).call()
+    def register_record_safe(
+        self,
+        record_ref: str,
+        version: int,
+        fingerprint: str
+    ) -> dict:
+
+        if self.record_exists(record_ref, version):
+
+            existing = self.get_record(
+                record_ref,
+                version
+            )
+
+            if (
+                existing["fingerprint"].lower()
+                != fingerprint.lower()
+            ):
+                raise ValueError(
+                    "Record version already exists "
+                    "with a different fingerprint"
+                )
+
+            return {
+                **existing,
+                "chain_id": self.web3.eth.chain_id,
+                "contract_address": self.contract_address,
+                "status": "already_registered"
+            }
+
+        return self.register_record(
+            record_ref,
+            version,
+            fingerprint
+        )

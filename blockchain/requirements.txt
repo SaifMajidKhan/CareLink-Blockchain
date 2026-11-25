@@ -21,6 +21,7 @@ hexbytes==2.0.0
 idna==3.20
 multidict==7.2.1
 parsimonious==0.10.0
+pillow==13.0.0
 propcache==0.5.4
 py-ecc==8.0.0
 pycryptodome==3.24.1
@@ -30,6 +31,7 @@ python-dotenv==1.2.4
 pyunormalize==18.0.0
 pywin32==312
 regex==2026.11.24
+reportlab==5.1.1
 requests==2.34.2
 rlp==5.0.0
 toolz==1.2.0

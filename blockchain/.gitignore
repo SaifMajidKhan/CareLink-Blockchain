@@ -49,3 +49,11 @@ Thumbs.db
 
 # Local blockchain deployment history
 /ignition/deployments/
+
+# Generated demonstration reports
+/demo_reports/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/

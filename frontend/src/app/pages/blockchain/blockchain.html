@@ -1,1 +1,545 @@
-<p>blockchain works!</p>
+<section class="explorer-page">
+
+  <div class="page-heading">
+
+    <div>
+      <div class="eyebrow">BLOCKCHAIN TRANSPARENCY</div>
+      <h1>Blockchain explorer</h1>
+      <p>Inspect CareLink registrations and on-chain fingerprints.</p>
+    </div>
+
+    <button
+      class="secondary-button"
+      [disabled]="loading() || busy()"
+      (click)="refresh()">
+
+      <lucide-icon [img]="RefreshCw" [size]="17"></lucide-icon>
+      Refresh explorer
+
+    </button>
+
+  </div>
+
+  <div class="information">
+
+    <lucide-icon [img]="Info" [size]="21"></lucide-icon>
+
+    <span>
+      This explorer displays CareLink registration metadata.
+      Patient records and secret salts remain off-chain.
+    </span>
+
+  </div>
+
+  @if (summaryError()) {
+    <div class="error-message">{{ summaryError() }}</div>
+  }
+
+  <div class="summary-grid">
+
+    <article class="summary-card">
+      <span>Total registrations</span>
+      <strong>{{ summary()?.total ?? '—' }}</strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Registered</span>
+      <strong class="success">
+        {{ summary()?.registered ?? '—' }}
+      </strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Pending</span>
+      <strong class="warning">
+        {{ summary()?.pending ?? '—' }}
+      </strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Failed</span>
+      <strong class="danger">
+        {{ summary()?.failed ?? '—' }}
+      </strong>
+    </article>
+
+  </div>
+
+  <div class="overview-grid">
+
+    <article class="panel">
+
+      <div class="panel-heading">
+
+        <div class="panel-icon">
+          <lucide-icon [img]="Blocks" [size]="25"></lucide-icon>
+        </div>
+
+        <div>
+          <h2>Ethereum network</h2>
+          <p>CareLink smart contract connectivity</p>
+        </div>
+
+      </div>
+
+      <div class="metadata-row">
+        <span>Network status</span>
+        <app-status-badge
+          [status]="health()?.status ?? 'loading'">
+        </app-status-badge>
+      </div>
+
+      <div class="metadata-row">
+        <span>Chain ID</span>
+        <strong>{{ health()?.chain_id ?? '—' }}</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Network type</span>
+        <strong>
+          {{ health()?.chain_id === 31337
+            ? 'Local Ethereum'
+            : 'Configured Ethereum network' }}
+        </strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Writer authorization</span>
+        <strong>
+          {{ health()?.writer_authorized === true
+            ? 'Authorized'
+            : health()?.writer_authorized === false
+              ? 'Unauthorized'
+              : 'Unknown' }}
+        </strong>
+      </div>
+
+      <div class="hash-field">
+        <label>CareLinkIntegrity smart contract</label>
+        <code>{{ health()?.contract_address ?? 'Unavailable' }}</code>
+      </div>
+
+    </article>
+
+    <article class="panel">
+
+      <div class="panel-heading">
+        <div>
+          <h2>Registration distribution</h2>
+          <p>Database anchor records by entity type</p>
+        </div>
+      </div>
+
+      @if (summary()) {
+
+        <div class="distribution-bar">
+
+          @for (item of distribution(); track item.label) {
+
+            <div
+              [style.width.%]="item.percent"
+              [style.background]="item.color">
+            </div>
+
+          }
+
+        </div>
+
+        @for (item of distribution(); track item.label) {
+
+          <div class="distribution-row">
+
+            <span class="legend-dot"
+              [style.background]="item.color">
+            </span>
+
+            <span>{{ item.label }}</span>
+
+            <strong>{{ item.count }}</strong>
+
+          </div>
+
+        }
+
+      } @else {
+
+        <div class="empty-state">
+          Registration statistics unavailable.
+        </div>
+
+      }
+
+    </article>
+
+  </div>
+
+  <article class="panel">
+
+    <div class="panel-heading">
+      <div>
+        <h2>Registration ledger</h2>
+        <p>Search medication, AI and medical report fingerprints.</p>
+      </div>
+    </div>
+
+    <div class="filters">
+
+      <div class="search-field">
+
+        <lucide-icon [img]="Search" [size]="18"></lucide-icon>
+
+        <input
+          aria-label="Search blockchain registrations"
+          placeholder="Search reference, fingerprint or transaction..."
+          maxlength="100"
+          [value]="search()"
+          [disabled]="loading()"
+          (input)="search.set($any($event.target).value)"
+          (keydown.enter)="applyFilters()">
+
+      </div>
+
+      <select
+        aria-label="Record type"
+        [value]="entityType()"
+        [disabled]="loading()"
+        (change)="entityType.set($any($event.target).value); applyFilters()">
+
+        <option value="">All record types</option>
+        <option value="medication_event">Medication events</option>
+        <option value="ai_prediction">AI predictions</option>
+        <option value="medical_report">Medical reports</option>
+
+      </select>
+
+      <select
+        aria-label="Registration status"
+        [value]="status()"
+        [disabled]="loading()"
+        (change)="status.set($any($event.target).value); applyFilters()">
+
+        <option value="">All statuses</option>
+        <option value="registered">Registered</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+
+      </select>
+
+      <button
+        class="primary-button"
+        [disabled]="loading()"
+        (click)="applyFilters()">
+        Search
+      </button>
+
+      <button
+        class="secondary-button"
+        [disabled]="loading()"
+        (click)="clearFilters()">
+        Clear
+      </button>
+
+    </div>
+
+    @if (error()) {
+      <div class="error-message">{{ error() }}</div>
+    }
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Record type</th>
+            <th>Reference</th>
+            <th>Version</th>
+            <th>Block</th>
+            <th>Transaction</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @if (loading()) {
+
+            <tr>
+              <td colspan="7" class="empty-state">
+                Loading registrations...
+              </td>
+            </tr>
+
+          } @else {
+
+            @for (anchor of anchors(); track anchor.id) {
+
+              <tr>
+
+                <td>
+                  <strong>{{ entityLabel(anchor.entity_type) }}</strong>
+                  <small>Record #{{ anchor.entity_id }}</small>
+                </td>
+
+                <td>
+                  <code>{{ shorten(anchor.record_ref) }}</code>
+                </td>
+
+                <td>v{{ anchor.version }}</td>
+
+                <td>{{ anchor.block_number ?? '—' }}</td>
+
+                <td>
+                  <code>{{ shorten(anchor.transaction_hash) }}</code>
+                </td>
+
+                <td>
+                  <app-status-badge [status]="anchor.status">
+                  </app-status-badge>
+                </td>
+
+                <td>
+
+                  <button
+                    class="text-button"
+                    (click)="showDetails(anchor)">
+
+                    <lucide-icon [img]="Eye" [size]="16"></lucide-icon>
+                    View evidence
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+            } @empty {
+
+              <tr>
+                <td colspan="7" class="empty-state">
+                  No matching registrations found.
+                </td>
+              </tr>
+
+            }
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination">
+
+      <span>{{ total() }} matching registrations</span>
+
+      <div class="page-controls">
+
+        <button
+          class="secondary-button"
+          [disabled]="loading() || page() === 1"
+          (click)="changePage(page() - 1)">
+
+          <lucide-icon [img]="ArrowLeft" [size]="16"></lucide-icon>
+          Previous
+
+        </button>
+
+        <span>Page {{ page() }} of {{ totalPages() }}</span>
+
+        <button
+          class="secondary-button"
+          [disabled]="loading() || page() >= totalPages()"
+          (click)="changePage(page() + 1)">
+
+          Next
+          <lucide-icon [img]="ArrowRight" [size]="16"></lucide-icon>
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+</section>
+
+@if (selected(); as anchor) {
+
+  <div class="modal-overlay">
+
+    <section
+      class="evidence-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="anchor-title">
+
+      <div class="modal-header">
+
+        <div>
+
+          <div class="eyebrow">BLOCKCHAIN REGISTRATION EVIDENCE</div>
+
+          <h2 id="anchor-title">
+            {{ entityLabel(anchor.entity_type) }}
+            #{{ anchor.entity_id }}
+          </h2>
+
+          <p>Anchor #{{ anchor.id }} · Version {{ anchor.version }}</p>
+
+        </div>
+
+        <button
+          class="secondary-button"
+          aria-label="Close evidence"
+          [disabled]="busy()"
+          (click)="closeDetails()">
+
+          <lucide-icon [img]="X" [size]="20"></lucide-icon>
+
+        </button>
+
+      </div>
+
+      <div class="metadata-row">
+        <span>Registration status</span>
+        <app-status-badge [status]="anchor.status"></app-status-badge>
+      </div>
+
+      <div class="metadata-row">
+        <span>Chain ID</span>
+        <strong>{{ anchor.chain_id }}</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Block number</span>
+        <strong>{{ anchor.block_number ?? '—' }}</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Registration attempts</span>
+        <strong>{{ anchor.retry_count }}</strong>
+      </div>
+
+      <div class="metadata-row">
+        <span>Anchored at</span>
+        <strong>
+          {{ anchor.anchored_at
+            ? (anchor.anchored_at | date:'medium')
+            : '—' }}
+        </strong>
+      </div>
+
+      <div class="hash-field">
+        <label>Record reference</label>
+        <code>{{ anchor.record_ref }}</code>
+      </div>
+
+      <div class="hash-field">
+        <label>SHA-256 fingerprint</label>
+        <code>{{ anchor.fingerprint }}</code>
+      </div>
+
+      <div class="hash-field">
+        <label>Smart contract address</label>
+        <code>{{ anchor.contract_address }}</code>
+      </div>
+
+      <div class="hash-field">
+
+        <label>Transaction hash</label>
+
+        <code>{{ anchor.transaction_hash ?? 'Unavailable' }}</code>
+
+        @if (anchor.transaction_hash; as hash) {
+
+          <button class="text-button" (click)="copy(hash)">
+
+            <lucide-icon [img]="Copy" [size]="15"></lucide-icon>
+            Copy transaction hash
+
+          </button>
+
+        }
+
+      </div>
+
+      <div class="information">
+
+        This operation compares the stored fingerprint against
+        Ethereum. To verify the underlying medical data or PDF,
+        use the corresponding record module.
+
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          class="primary-button"
+          [disabled]="busy()"
+          (click)="verify()">
+
+          <lucide-icon [img]="ShieldCheck" [size]="18"></lucide-icon>
+
+          {{ busy() ? 'Verifying...' : 'Verify on-chain fingerprint' }}
+
+        </button>
+
+        <a
+          class="secondary-button"
+          [routerLink]="recordRoute(anchor.entity_type)">
+
+          Open record module
+
+        </a>
+
+      </div>
+
+      @if (detailError()) {
+        <div class="error-message">{{ detailError() }}</div>
+      }
+
+      @if (copied()) {
+        <div class="notice">{{ copied() }}</div>
+      }
+
+      @if (verification(); as result) {
+
+        <div
+          class="verification-result"
+          [class.verified]="result.verified === true"
+          [class.mismatch]="result.verified === false"
+          [class.unavailable]="result.verified === null">
+
+          <lucide-icon
+            [img]="result.verified === true ? ShieldCheck : ShieldAlert"
+            [size]="30">
+          </lucide-icon>
+
+          <div>
+
+            <h3>
+              {{ result.verified === true
+                ? 'On-chain fingerprint verified'
+                : result.verified === false
+                  ? 'Fingerprint mismatch'
+                  : 'Verification not confirmed' }}
+            </h3>
+
+            <p>{{ result.message }}</p>
+
+          </div>
+
+        </div>
+
+      }
+
+    </section>
+
+  </div>
+
+}

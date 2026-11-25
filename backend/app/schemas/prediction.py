@@ -77,3 +77,11 @@ class PredictionResult(BaseModel):
     dataset_type: str
 
     disclaimer: str
+
+class PredictionCreate(BaseModel):
+
+    model_config = ConfigDict(extra="forbid")
+
+    patient_id: int = Field(gt=0)
+
+    features: PredictionFeatures

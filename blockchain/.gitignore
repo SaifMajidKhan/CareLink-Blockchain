@@ -1,0 +1,48 @@
+# Node modules
+/node_modules/
+
+# Compilation output
+/dist/
+
+# pnpm deploy output
+/bundle/
+
+# Hardhat build artifacts
+/artifacts/
+
+# Hardhat compilation cache
+/cache/
+
+# Typechain output
+/types/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Hardhat coverage reports
+/coverage/
+
+# Gas snapshot files
+/.gas-snapshot
+
+# Snapshot cheatcodes output
+/snapshots/
+
+# Local AI assistant configuration
+/.agents/
+/.claude/
+/AGENTS.md
+/CLAUDE.md
+
+# Log files
+*.log
+npm-debug.log*
+
+# TypeScript build metadata
+*.tsbuildinfo
+
+# Operating system files
+.DS_Store
+Thumbs.db

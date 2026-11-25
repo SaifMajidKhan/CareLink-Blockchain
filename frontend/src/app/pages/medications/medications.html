@@ -1,1 +1,555 @@
-<p>medications works!</p>
+<section class="medications-page">
+
+  <div class="page-heading">
+
+    <div>
+      <div class="eyebrow">MEDICATION MANAGEMENT</div>
+      <h1>Medication records</h1>
+      <p>
+        Monitor adherence and verify medical record integrity.
+      </p>
+    </div>
+
+    <button
+      class="secondary-button"
+      [disabled]="loading() || busy()"
+      (click)="loadMedications()">
+
+      <lucide-icon [img]="RefreshCw" [size]="17">
+      </lucide-icon>
+
+      Refresh records
+
+    </button>
+
+  </div>
+
+  @if (error()) {
+    <div class="error-message" role="alert">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="stats-grid">
+
+    <app-stat-card
+      label="Record versions"
+      [value]="loading() || error() ? '—' : medications().length"
+      description="Retrieved medication versions">
+
+      <lucide-icon [img]="Pill" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="Taken"
+      [value]="loading() || error() ? '—' : takenCount()"
+      description="Versions marked as taken"
+      accent="#15803d">
+
+      <lucide-icon [img]="CheckCircle" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+    <app-stat-card
+      label="Missed"
+      [value]="loading() || error() ? '—' : missedCount()"
+      description="Versions marked as missed"
+      accent="#dc2626">
+
+      <lucide-icon [img]="AlertCircle" [size]="22">
+      </lucide-icon>
+
+    </app-stat-card>
+
+  </div>
+
+  <article class="panel">
+
+    <div class="panel-heading">
+      <h2>Medication directory</h2>
+      <p>Browse original records and corrected versions.</p>
+    </div>
+
+    <div class="filters">
+
+      <div class="search-box">
+
+        <lucide-icon [img]="Search" [size]="17">
+        </lucide-icon>
+
+        <input
+          type="search"
+          placeholder="Search medication..."
+          aria-label="Search medications"
+          [value]="search()"
+          (input)="changeSearch($any($event.target).value)">
+
+      </div>
+
+      <select
+        aria-label="Filter by patient"
+        [value]="patientFilter() ?? ''"
+        [disabled]="loading()"
+        (change)="changePatient($any($event.target).value)">
+
+        <option value="">All patients</option>
+
+        @for (patient of patients(); track patient.id) {
+
+          <option [value]="patient.id">
+            {{ patient.name }}
+          </option>
+
+        }
+
+      </select>
+
+      <select
+        aria-label="Filter by status"
+        [value]="statusFilter()"
+        (change)="changeStatus($any($event.target).value)">
+
+        <option value="">All statuses</option>
+        <option value="Taken">Taken</option>
+        <option value="Missed">Missed</option>
+        <option value="Pending">Pending</option>
+
+      </select>
+
+    </div>
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Medication</th>
+            <th>Patient</th>
+            <th>Scheduled time</th>
+            <th>Status</th>
+            <th>Version</th>
+            <th>Blockchain</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @if (loading()) {
+
+            <tr>
+              <td colspan="6" class="empty-state">
+                Loading medication records...
+              </td>
+            </tr>
+
+          } @else if (error()) {
+
+            <tr>
+              <td colspan="6" class="empty-state">
+                Medication data unavailable.
+              </td>
+            </tr>
+
+          } @else {
+
+            @for (
+              item of visibleMedications();
+              track item.id
+            ) {
+
+              <tr>
+
+                <td>
+                  <div class="medication-cell">
+
+                    <div class="medication-icon">
+                      <lucide-icon [img]="Pill" [size]="19">
+                      </lucide-icon>
+                    </div>
+
+                    <div>
+                      <strong>{{ item.medication_name }}</strong>
+                      <span>
+                        {{ item.dosage }} · #{{ item.id }}
+                      </span>
+                    </div>
+
+                  </div>
+                </td>
+
+                <td>{{ patientName(item.patient_id) }}</td>
+
+                <td>
+                  {{ item.scheduled_at | date:'dd MMM, HH:mm' }}
+                </td>
+
+                <td>
+                  <app-status-badge [status]="item.status">
+                  </app-status-badge>
+                </td>
+
+                <td>
+                  <span class="version">
+                    v{{ item.version }}
+                  </span>
+                </td>
+
+                <td>
+
+                  <button
+                    class="text-button"
+                    [disabled]="busy()"
+                    (click)="openDetails(item.id)">
+
+                    <lucide-icon
+                      [img]="ShieldCheck"
+                      [size]="16">
+                    </lucide-icon>
+
+                    View integrity
+
+                  </button>
+
+                </td>
+
+              </tr>
+
+            } @empty {
+
+              <tr>
+                <td colspan="6" class="empty-state">
+                  No matching medication records.
+                </td>
+              </tr>
+
+            }
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination">
+
+      <span>
+        {{ filteredMedications().length }} matching versions
+      </span>
+
+      <div class="page-controls">
+
+        <button
+          [disabled]="page() === 1"
+          (click)="changePage(page() - 1)">
+          Previous
+        </button>
+
+        <span>{{ page() }} / {{ totalPages() }}</span>
+
+        <button
+          [disabled]="page() >= totalPages()"
+          (click)="changePage(page() + 1)">
+          Next
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+  <div class="information">
+
+    <lucide-icon [img]="ShieldCheck" [size]="25">
+    </lucide-icon>
+
+    <div>
+      <strong>Immutable version history</strong>
+      <p>
+        Corrections create new versions instead of overwriting
+        previously registered blockchain fingerprints.
+      </p>
+    </div>
+
+  </div>
+
+</section>
+
+@if (selected(); as record) {
+
+  <div class="modal-overlay">
+
+    <section
+      class="detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="integrity-title">
+
+      <div class="modal-header">
+
+        <div>
+          <div class="eyebrow">BLOCKCHAIN EVIDENCE</div>
+
+          <h2 id="integrity-title">
+            {{ record.medication.medication_name }}
+          </h2>
+
+          <p>
+            Record #{{ record.medication.id }}
+            · Version {{ record.medication.version }}
+          </p>
+        </div>
+
+        <button
+          class="icon-button"
+          aria-label="Close details"
+          [disabled]="busy()"
+          (click)="closeDetails()">
+
+          <lucide-icon [img]="X" [size]="22">
+          </lucide-icon>
+
+        </button>
+
+      </div>
+
+      <div class="evidence-summary">
+
+        <div>
+          <span>Registration status</span>
+
+          <app-status-badge
+            [status]="record.blockchain.status">
+          </app-status-badge>
+        </div>
+
+        <div>
+          <span>Chain ID</span>
+          <strong>{{ record.blockchain.chain_id }}</strong>
+        </div>
+
+        <div>
+          <span>Block number</span>
+          <strong>
+            {{ record.blockchain.block_number ?? '—' }}
+          </strong>
+        </div>
+
+      </div>
+
+      <div class="hash-field">
+
+        <label>Record reference</label>
+
+        <div>
+          <code>{{ record.medication.record_ref }}</code>
+
+          <button
+            class="icon-button"
+            aria-label="Copy record reference"
+            (click)="copy(record.medication.record_ref)">
+
+            <lucide-icon [img]="Copy" [size]="16">
+            </lucide-icon>
+
+          </button>
+        </div>
+
+      </div>
+
+      <div class="hash-field">
+
+        <label>SHA-256 fingerprint</label>
+
+        <div>
+          <code>{{ record.blockchain.fingerprint }}</code>
+
+          <button
+            class="icon-button"
+            aria-label="Copy fingerprint"
+            (click)="copy(record.blockchain.fingerprint)">
+
+            <lucide-icon [img]="Copy" [size]="16">
+            </lucide-icon>
+
+          </button>
+        </div>
+
+      </div>
+
+      <div class="hash-field">
+
+        <label>Transaction hash</label>
+
+        <div>
+
+          <code>
+            {{ record.blockchain.transaction_hash ?? 'Not available' }}
+          </code>
+
+          @if (record.blockchain.transaction_hash; as hash) {
+
+            <button
+              class="icon-button"
+              aria-label="Copy transaction hash"
+              (click)="copy(hash)">
+
+              <lucide-icon [img]="Copy" [size]="16">
+              </lucide-icon>
+
+            </button>
+
+          }
+
+        </div>
+
+      </div>
+
+      <div class="hash-field">
+
+        <label>Smart contract address</label>
+
+        <div>
+          <code>{{ record.blockchain.contract_address }}</code>
+        </div>
+
+      </div>
+
+      <div class="detail-actions">
+
+        <button
+          class="primary-button"
+          [disabled]="busy()"
+          (click)="verify()">
+
+          <lucide-icon [img]="ShieldCheck" [size]="17">
+          </lucide-icon>
+
+          Verify integrity
+
+        </button>
+
+        <button
+          class="secondary-button"
+          [disabled]="busy()"
+          (click)="viewHistory()">
+
+          <lucide-icon [img]="History" [size]="17">
+          </lucide-icon>
+
+          Version history
+
+        </button>
+
+        @if (
+          record.blockchain.status === 'pending' ||
+          record.blockchain.status === 'failed'
+        ) {
+
+          <button
+            class="secondary-button"
+            [disabled]="busy()"
+            (click)="retry()">
+
+            Retry registration
+
+          </button>
+
+        }
+
+      </div>
+
+      @if (busy()) {
+        <p class="processing">Processing request...</p>
+      }
+
+      @if (message()) {
+        <div class="information" role="status">
+          {{ message() }}
+        </div>
+      }
+
+      @if (detailError()) {
+        <div class="error-message" role="alert">
+          {{ detailError() }}
+        </div>
+      }
+
+      @if (integrity(); as result) {
+
+        <div class="result-panel">
+
+          <h3>Integrity verification response</h3>
+
+          <pre>{{ result | json }}</pre>
+
+        </div>
+
+      }
+
+      @if (history().length > 0) {
+
+        <div class="history-panel">
+
+          <h3>Record version history</h3>
+
+          @for (
+            item of history();
+            track item.medication.id
+          ) {
+
+            <div class="history-item">
+
+              <div class="history-version">
+                v{{ item.medication.version }}
+              </div>
+
+              <div class="history-description">
+
+                <strong>
+                  {{ item.medication.medication_name }}
+                  · {{ item.medication.dosage }}
+                </strong>
+
+                <span>
+                  {{ item.medication.recorded_at | date:'medium' }}
+                </span>
+
+              </div>
+
+              <app-status-badge
+                [status]="item.medication.status">
+              </app-status-badge>
+
+              <app-status-badge
+                [status]="item.blockchain.status">
+              </app-status-badge>
+
+              <button
+                class="text-button"
+                [disabled]="busy()"
+                (click)="openDetails(item.medication.id)">
+
+                Details
+
+              </button>
+
+            </div>
+
+          }
+
+        </div>
+
+      }
+
+    </section>
+
+  </div>
+
+}

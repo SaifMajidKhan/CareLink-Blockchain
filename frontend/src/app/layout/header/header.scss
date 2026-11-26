@@ -106,3 +106,38 @@
     display: none;
   }
 }
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.5;
+}
+
+.breadcrumb-root,
+.breadcrumb-current {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.breadcrumb .breadcrumb-root {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.breadcrumb .breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.breadcrumb-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}

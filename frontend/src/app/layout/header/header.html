@@ -14,14 +14,19 @@
 
     <div class="breadcrumb">
 
-      <span>Workspace</span>
+      <span class="breadcrumb-root">
+        Workspace
+      </span>
 
       <lucide-icon
+        class="breadcrumb-chevron"
         [img]="ChevronRight"
-        [size]="15">
+        [size]="16">
       </lucide-icon>
 
-      <strong>{{ currentPage() }}</strong>
+      <span class="breadcrumb-current">
+        {{ currentPage() }}
+      </span>
 
     </div>
 

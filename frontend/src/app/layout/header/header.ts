@@ -4,8 +4,12 @@ import {
   output
 } from '@angular/core';
 
-import { Title } from '@angular/platform-browser';
-import { NavigationEnd, Router } from '@angular/router';
+import {
+  NavigationEnd,
+  Router,
+  ActivatedRouteSnapshot
+} from '@angular/router';
+
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import {
@@ -30,7 +34,6 @@ import {
 export class Header {
 
   private readonly router = inject(Router);
-  private readonly title = inject(Title);
 
   readonly menuToggle = output<void>();
 
@@ -42,9 +45,7 @@ export class Header {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
       startWith(null),
-      map(() =>
-        this.title.getTitle().split(' | ')[0]
-      )
+      map(() => this.getActivePageTitle())
     ),
     { initialValue: 'Overview' }
   );
@@ -57,5 +58,18 @@ export class Header {
       year: 'numeric'
     }
   ).format(new Date());
+
+  private getActivePageTitle(): string {
+
+    let route: ActivatedRouteSnapshot =
+      this.router.routerState.snapshot.root;
+
+    while (route.firstChild) {
+      route = route.firstChild;
+    }
+
+    return route.title?.split('|')[0].trim() || 'Overview';
+
+  }
 
 }
